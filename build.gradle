@@ -1,0 +1,173 @@
+import com.github.psxpaul.task.JavaExecFork
+import groovy.transform.Memoized
+
+import static java.lang.System.getProperties
+
+buildscript {
+    ext {
+        rest_assured_version = "4.3.3"
+        aspectjweaver_version = "1.9.6"
+        jackson_version = "2.13.0"
+        lombok_version = "1.18.16"
+        spring_version = "5.3.1"
+        log4j2_version = "2.16.0"
+        cucumber_version = "6.9.1"
+        wiremock_version = "2.27.2"
+        json_path_version = "2.7.0"
+    }
+}
+
+plugins {
+    id 'java'
+    id 'idea'
+    id 'io.freefair.lombok' version '6.4.2'
+    id 'io.qameta.allure' version '2.8.1'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'com.github.psxpaul.execfork' version '0.2.0'
+}
+
+group = 'com.template.qa'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+// to group all the custom tasks
+def TASK_GROUP = 'Automation Test Framework'
+
+configurations {
+    configureEach {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    cucumberRuntime.extendsFrom testImplementation
+}
+
+sourceSets.main.java.srcDirs += ['src/main/code', 'src/test/code']
+
+dependencies {
+
+    // JUnit
+    testRuntimeOnly "junit:junit:4.13.1"
+
+    // Cucumber
+    implementation "io.cucumber:cucumber-java:$cucumber_version"
+    implementation "io.cucumber:cucumber-spring:$cucumber_version"
+
+    // REST
+    implementation "io.rest-assured:rest-assured:$rest_assured_version"
+    implementation "io.rest-assured:json-schema-validator:3.3.0"
+    implementation "org.apache.httpcomponents.core5:httpcore5:5.1"
+
+    implementation "com.github.tomakehurst:wiremock-jre8:$wiremock_version"
+    implementation "com.github.tomakehurst:wiremock-jre8-standalone:$wiremock_version"
+
+    implementation "org.aspectj:aspectjweaver:$aspectjweaver_version"
+    implementation "com.jayway.jsonpath:json-path:$json_path_version"
+
+    // Spring & DI
+    implementation "org.springframework:spring-context-support:$spring_version"
+    implementation 'org.springframework.cloud:spring-cloud-starter-contract-stub-runner:3.0.0'
+    implementation("org.springframework.boot:spring-boot-starter-test:2.7.5") {
+        exclude module: "spring-boot-starter-logging"
+        exclude module: "logback-classic"
+    }
+
+    // java & lombok
+    implementation "javax.annotation:javax.annotation-api:1.3.2"
+    implementation "org.projectlombok:lombok:$lombok_version"
+    annotationProcessor "org.projectlombok:lombok:$lombok_version"
+
+    // Mapping
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:$jackson_version"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$jackson_version"
+    implementation "com.github.wnameless:json-flattener:0.7.1"
+    implementation 'org.mapstruct:mapstruct:1.5.3.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+
+    // logging
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4j2_version"
+    implementation "org.apache.logging.log4j:log4j-core:$log4j2_version"
+    implementation "org.apache.logging.log4j:log4j-jul:$log4j2_version"
+
+    // assertions
+    implementation "org.assertj:assertj-core:3.18.1"
+    implementation "org.awaitility:awaitility:4.0.3"
+    implementation "org.unitils:unitils-core:3.4.6"
+    implementation 'net.javacrumbs.json-unit:json-unit-assertj:2.36.0'
+
+    // commons & utils
+    implementation "org.apache.commons:commons-lang3:3.11"
+    implementation "org.apache.commons:commons-math3:3.6.1"
+    implementation "org.apache.commons:commons-text:1.9"
+    implementation "commons-beanutils:commons-beanutils:1.9.4"
+    implementation "commons-io:commons-io:2.8.0"
+
+    // property management
+    implementation "org.aeonbits.owner:owner-java8:1.0.12"
+
+    //Report Portal
+    implementation 'com.epam.reportportal:agent-java-cucumber6:5.0.6'
+    implementation group: 'com.epam.reportportal', name: 'logger-java-log4j', version: '5.0.0'
+}
+
+group = 'com.template.qa'
+version = '0.1-SNAPSHOT'
+description = 'tests-automation'
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+def systemPropertySetup = {
+    systemProperties System.getProperties()
+    systemProperty 'log4j2.console.level', 'INFO'
+}
+
+def cucumberSetup = {
+    shouldRunAfter compileTestJava
+    group TASK_GROUP
+
+    systemProperties.putIfAbsent("cucumber.execution.order", "lexical")
+    systemProperties.putIfAbsent("cucumber.features", "classpath:features")
+    systemProperties.putIfAbsent("cucumber.glue", "com.template.qa.cucumber")
+    systemProperties.putIfAbsent("cucumber.plugin", "pretty," +
+            "junit:${buildDir}/reports/junit/TEST-cucumber.xml," +
+            "json:${buildDir}/reports/cucumberReport.json")
+
+
+    classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+    jvmArgs += ['--add-opens', 'java.base/java.lang=ALL-UNNAMED']
+    mainClass = "io.cucumber.core.cli.Main"
+    // failed tests do not fail build
+    if ("${System.env.LOCAL_RUN}" == "true") {
+        ignoreExitValue = true
+    }
+}
+
+def getDate() {
+    return new Date().format("dd-MM-yyyy HH.mm.ss") + " UTC"
+}
+
+def getEnv() {
+    return properties['spring.profiles.active']
+}
+
+task runCucumberTests(type: JavaExec) {
+    description = 'Execute Cucumber tests as part of build pipeline'
+
+    configure systemPropertySetup
+    configure cucumberSetup
+
+    systemProperties.putIfAbsent("cucumber.filter.tags", "" +
+            "not @ignore" +
+            " and not @manual" +
+            " and not @wip" +
+            " and not @e2e" +
+            " and not @e2eflow"
+    )
+
+    systemProperties.put('spring.profiles.active', "local")
+}

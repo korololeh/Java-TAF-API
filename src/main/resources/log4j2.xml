@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration packages="com.epam.ta.reportportal.log4j.appender" strict="true">
+    <Appenders>
+        <Console name="STDOUT">
+            <PatternLayout
+                    pattern="%highlight{[%-5level] %d{HH:mm:ss}: %msg%n%throwable}{ERROR=Bright Red, WARN=Bright Yellow, INFO=Bright Cyan, DEBUG=Bright Green, TRACE=White}"/>
+        </Console>
+        <ReportPortalLog4j2Appender name="ReportPortalAppender">
+            <PatternLayout
+                    pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
+        </ReportPortalLog4j2Appender>
+    </Appenders>
+    <Loggers>
+        <!--disable redundant logging-->
+        <Logger additivity="false" level="info" name="com.epam.reportportal.service">
+            <AppenderRef ref="ReportPortalAppender"/>
+        </Logger>
+        <Logger name="org.springframework" level="WARN"/>
+        <Logger name="org.apache.http" level="WARN"/>
+        <Logger name="io.restassured.internal" level="INFO"/>
+        <Logger name="org.apache.commons" level="INFO"/>
+        <Logger name="io.github.bonigarcia" level="INFO"/>
+        <Logger name="net.lightbody.bmp" level="INFO"/>
+        <Logger name="org.littleshoot.proxy" level="INFO"/>
+        <Logger name="io.netty" level="INFO"/>
+        <Logger name="org.eclipse.jetty" level="WARN"/>
+        <Logger level="WARN" name="org.springframework.cloud"/>
+        <Logger level="WARN" name="wiremock.org"/>
+        <Logger level="WARN" name="WireMock"/>
+        <Logger level="WARN" name="com.github.tomakehurst.wiremock"/>
+        <Logger level="WARN" name="org.apache.kafka"/>
+        <Logger level="WARN" name="io.confluent"/>
+
+        <Root level="DEBUG">
+            <AppenderRef ref="STDOUT" level="${sys:log4j2.console.level:-DEBUG}"/>
+            <AppenderRef ref="ReportPortalAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

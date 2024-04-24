@@ -1,0 +1,17 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPattern": ".*"
+      },
+      "response": {
+        "status":200,
+        "bodyFileName": "test_response.json",
+        "headers": {
+          "Content-Type": "application/json;charset=UTF-8"
+        }
+      }
+    }
+  ]
+}

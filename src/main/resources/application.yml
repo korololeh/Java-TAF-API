@@ -1,0 +1,19 @@
+spring:
+  main:
+    lazy-initialization: true
+    log-startup-info: false
+
+service:
+  serviceBaseUri: http://localhost:6606
+
+mocks:
+  url: http://localhost
+  port: 6606
+  resourceDir: mocks
+  commonStub: service_common.json
+
+wiremock:
+  server:
+    port: 6606
+    files:
+      - "classpath:/mocks/service"
